@@ -29,6 +29,7 @@ RUN set -eux \
         --enable-distro \
         --disable-silent-rules \
         --disable-examples \
+        --enable-tls13 \
     && make \
     && make install-exec
 
@@ -37,13 +38,18 @@ RUN find . -name options.h
 FROM gcc:9.2
 
 ARG WOLFSSL_VERSION=4.1.0-stable
+ARG UID=1000
+ARG GID=1000
 
 COPY --from=wolfssl /usr/lib/x86_64-linux-gnu/ /usr/lib/x86_64-linux-gnu/
 COPY --from=wolfssl /wolfssl-${WOLFSSL_VERSION}/ /usr/include/
 
-COPY . /build
+RUN groupadd -g ${GID} dohd \
+ && useradd dohd -d /build -M -g dohd
 
+COPY --chown=dohd:dohd . /build
 WORKDIR /build
+USER dohd
 
 RUN make all
 
